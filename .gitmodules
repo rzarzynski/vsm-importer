@@ -1,0 +1,3 @@
+[submodule "dep/virtual-storage-manager"]
+	path = dep/virtual-storage-manager
+	url = https://github.com/01org/virtual-storage-manager.git

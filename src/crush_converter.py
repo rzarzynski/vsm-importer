@@ -11,18 +11,20 @@ class Formatter(object):
     def format_item(self, typename, name, props): 
         pass
 
+
 class OSDTree(object):
     def __init__(self, osdtreemap):
         self._osdtreemap = osdtreemap
+        self._items = osdtreemap['nodes']
 
     def _get_items_by_type(self, typename):
-        pass
+        return filter(lambda item: typename == item['type'], self._items)
 
     def get_osds(self):
-        pass
+        return self._get_items_by_type('osd')
 
     def get_hosts(self):
-        pass
+        return self._get_items_by_type('host')
 
 
 class LLC(object):

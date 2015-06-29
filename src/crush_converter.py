@@ -65,13 +65,58 @@ class OSDTree(object):
     def get_hosts_names(self):
         return map(lambda item: item['name'], self._get_hosts())
 
-class LLC(object):
-    def __init__(osdtree, formatter):
+
+class Converter(object):
+    def __init__(self, osdtree, formatter):
         self._formatter = formatter
         self._osdtree = osdtree
+        self._zones = ['zone0']
+        # FIXME: convert to input params
+        self._storage_groups = ['performance', 'capacity']
+        self._mapping = { 'rzarzynski-pc' : { 'zone' : 'zone0', 'sg' : 'capacity'} }
+        self._bucket_num = 0
 
-    def _get_hostosd_list(self):
-        pass
+    def _get_bucket_num(self):
+        ret = self._bucket_num
+        self._bucket_num = self._bucket_num - 1
+        return ret
+
+    def _get_std_bucket_params(self):
+        return [['id', str(self._get_bucket_num())],      \
+               ['alg', 'straw'],                    \
+               ['hash', '0']]
+
+    def _get_osd_items(self, hostname, storage_group, zone_name):
+        hostitems = self._get_std_bucket_params()
+        try:
+            hostmap = self._mapping[hostname]
+        except KeyError:
+            return hostitems
+        # Check whether node is mapped to specified storage group and zone.
+        if hostmap['zone'] != zone_name or hostmap['sg'] != storage_group:
+            return hostitems
+        for osdname in self._osdtree.get_osd_names_by_host_name(hostname):
+            hostitems.append(['item', osdname, 'weight', '1.0'])
+        return hostitems
+
+    def _get_storage_group_items(self, storage_group):
+        sgitems = self._get_std_bucket_params()
+        for entity in itertools.product(self._zones, [storage_group]):
+            sgitems.append(['item', '_'.join(entity), 'weight', '1.0'])
+        return sgitems
+
+    def _get_zone_items(self, zone_name, sg_name):
+        zoneitems = self._get_std_bucket_params()
+        for hostname in self._osdtree.get_hosts_names():
+            entity_name = '_'.join([hostname, sg_name, zone_name])
+            zoneitems.append(['item', entity_name, 'weight', '1.0'])
+        return zoneitems
+
+    def _get_root_items(self):
+        rootitems = self._get_std_bucket_params()
+        for group_name in self._storage_groups:
+            rootitems.append(['item', group_name, 'weight', '1.0'])
+        return rootitems
 
     def validate_map(self):
         return True
@@ -88,27 +133,27 @@ class LLC(object):
 
         for entity in itertools.product(names, self._storage_groups,
                 self._zones):
+            host_name = entity[0]
             entity_name = '_'.join(entity)
-            properties = {}
-            properties['id'] = '-1'
-            properties['alg'] = 'straw'
-            properties['hash'] = '0'
-            properties['item'] = []
             self._formatter.format_multiline_section('host', entity_name,
-                    properties)
+                    *self._get_osd_items(*entity))
 
     def add_root(self):
+        self._formatter.format_multiline_section('root', 'vsm',
+                *self._get_root_items())
         pass
 
     def add_storage_groups(self):
         for storage_group in self._storage_groups:
             self._formatter.format_multiline_section('storage_group',
-                    storage_group, {})
+                    storage_group,
+                    *self._get_storage_group_items(storage_group))
 
     def add_zones(self):
         for entity in itertools.product(self._zones, self._storage_groups):
             entity_name = '_'.join(entity)
-            self._formatter.format_multiline_section('zone', entity_name, {})
+            self._formatter.format_multiline_section('zone', entity_name,
+                    *self._get_zone_items(*entity))
 
     def add_rulesets(self):
         pass
@@ -124,5 +169,6 @@ if __name__ == '__main__':
         conv.add_hosts_osds()
         conv.add_zones()
         conv.add_storage_groups()
+        conv.add_root()
         print(formatter.get_content())
     pass

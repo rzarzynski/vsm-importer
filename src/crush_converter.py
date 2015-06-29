@@ -75,6 +75,7 @@ class Converter(object):
         self._storage_groups = ['performance', 'capacity']
         self._mapping = { 'rzarzynski-pc' : { 'zone' : 'zone0', 'sg' : 'capacity'} }
         self._bucket_num = 0
+        self._ruleset_num = 0
 
     def _get_bucket_num(self):
         ret = self._bucket_num
@@ -111,6 +112,18 @@ class Converter(object):
             entity_name = '_'.join([hostname, sg_name, zone_name])
             zoneitems.append(['item', entity_name, 'weight', '1.0'])
         return zoneitems
+
+    def _get_ruleset_item(self, group_name, ruleset_num=0):
+        items = []
+        items.append(['ruleset', str(self._ruleset_num)])
+        items.append(['type', 'replicated'])
+        items.append(['min_size', '0'])
+        items.append(['max_size' '10'])
+        items.append(['step', 'take', group_name])
+        items.append(['step', 'chooseleaf', 'firstn', '0', 'type', 'zone'])
+        items.append(['step', 'emmit'])
+        self._ruleset_num = self._ruleset_num + 1
+        return items
 
     def _get_root_items(self):
         rootitems = self._get_std_bucket_params()
@@ -156,7 +169,9 @@ class Converter(object):
                     *self._get_zone_items(*entity))
 
     def add_rulesets(self):
-        pass
+        for group in self._storage_groups:
+            self._formatter.format_multiline_section('rule', group,
+                    *self._get_ruleset_item(group))
 
 if __name__ == '__main__':
     with open('/tmp/hier.txt', 'r') as fh:
@@ -170,5 +185,6 @@ if __name__ == '__main__':
         conv.add_zones()
         conv.add_storage_groups()
         conv.add_root()
+        conv.add_rulesets()
         print(formatter.get_content())
     pass

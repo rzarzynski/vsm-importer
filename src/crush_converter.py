@@ -39,12 +39,31 @@ class OSDTree(object):
     def _get_items_by_type(self, typename):
         return filter(lambda item: typename == item['type'], self._items)
 
-    def get_osds(self):
+    def _get_item_by_name(self, itemname):
+        return filter(lambda item: itemname == item['name'], self._items)[0]
+
+    def _get_item_by_id(self, itemid):
+        return filter(lambda item: itemid == item['id'], self._items)[0]
+
+    def _get_osds(self):
         return self._get_items_by_type('osd')
 
-    def get_hosts(self):
+    def _get_hosts(self):
         return self._get_items_by_type('host')
 
+    def get_osd_names_by_host_name(self, hostname):
+        try:
+            oids = self._get_item_by_name(hostname)['children']
+        except:
+            return []
+        else:
+            return map(lambda oid: self._get_item_by_id(oid)['name'], oids)
+
+    def get_osds_names(self):
+        return map(lambda item: item['name'], self._get_osds())
+
+    def get_hosts_names(self):
+        return map(lambda item: item['name'], self._get_hosts())
 
 class LLC(object):
     def __init__(osdtree, formatter):
@@ -65,8 +84,7 @@ class LLC(object):
         self._formatter.format_devices(self._osdtree.get_osds_names())
 
     def add_hosts_osds(self):
-        hosts = self._osdtree.get_hosts()
-        names = map(lambda item: item['name'], hosts)
+        names = self._osdtree.get_hosts_names()
 
         for entity in itertools.product(names, self._storage_groups,
                 self._zones):

@@ -1,15 +1,34 @@
+import json
+import itertools
+
 class Formatter(object):
     def __init__(self):
-        pass
+        self.lines = []
 
     def get_content(self):
-        pass
+        return '\n'.join(self.lines)
 
-    def format_section(self, items):
-        pass
+    def _add_section_sep(self):
+        self.lines.append(str())
 
-    def format_item(self, typename, name, props): 
-        pass
+    def _format_oneline_section(self, typename, items, num=0):
+        self.lines.append('# %ss' % typename)
+        for i, item in enumerate(items, start=num):
+            self.lines.append("%s %d %s" % (typename, i, item))
+        self._add_section_sep()
+        return len(items) + num
+
+    def format_devices(self, items):
+        return self._format_oneline_section('device', items)
+
+    def format_types(self, items):
+        return self._format_oneline_section('type', items)
+
+    def format_multiline_section(self, typename, name, *props):
+        self.lines.append('%s %s {' % (typename, name))
+        for prop in props:
+            self.lines.append('    %s' % (' '.join(prop)))
+        self.lines.append('}')
 
 
 class OSDTree(object):
@@ -39,12 +58,11 @@ class LLC(object):
         return True
 
     def add_types(self):
-        self._formatter.format_oneline_section('type',
+        self._formatter.format_types(
                 ['osd', 'node', 'zone', 'storage_group', 'root'])
 
     def add_devices(self):
-        self._formatter.format_oneline_section('device',
-                map(lambda item: item['name'], self._osdtree.get_osds()))
+        self._formatter.format_devices(self._osdtree.get_osds_names())
 
     def add_hosts_osds(self):
         hosts = self._osdtree.get_hosts()

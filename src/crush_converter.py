@@ -76,6 +76,7 @@ class Converter(object):
         self._mapping = { 'rzarzynski-pc' : { 'zone' : 'zone0', 'sg' : 'capacity'} }
         self._bucket_num = 0
         self._ruleset_num = 0
+        self._weights = {}
 
     def _get_bucket_num(self):
         ret = self._bucket_num
@@ -96,8 +97,10 @@ class Converter(object):
         # Check whether node is mapped to specified storage group and zone.
         if hostmap['zone'] != zone_name or hostmap['sg'] != storage_group:
             return hostitems
-        for osdname in self._osdtree.get_osd_names_by_host(hostname):
+        osdnames = self._osdtree.get_osd_names_by_host(hostname)
+        for osdname in osdnames:
             hostitems.append(['item', osdname, 'weight', '1.0'])
+        self._weights[(hostname, storage_group, zone_name)] = 1.0 * len(osdnames)
         return hostitems
 
     def _get_storage_group_items(self, storage_group):
@@ -109,8 +112,13 @@ class Converter(object):
     def _get_zone_items(self, zone_name, sg_name):
         zoneitems = self._get_std_bucket_params()
         for hostname in self._osdtree.get_hosts_names():
+            try:
+                weight = str(self._weights[(hostname, sg_name, zone_name)])
+            except KeyError:
+                weight = '0.0'
             entity_name = '_'.join([hostname, sg_name, zone_name])
-            zoneitems.append(['item', entity_name, 'weight', '1.0'])
+            zoneitems.append(['item', entity_name, 'weight',
+                weight])
         return zoneitems
 
     def _get_ruleset_item(self, group_name, ruleset_num=0):

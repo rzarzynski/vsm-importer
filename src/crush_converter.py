@@ -51,7 +51,7 @@ class OSDTree(object):
     def _get_hosts(self):
         return self._get_items_by_type('host')
 
-    def get_osd_names_by_host_name(self, hostname):
+    def get_osd_names_by_host(self, hostname):
         try:
             oids = self._get_item_by_name(hostname)['children']
         except:
@@ -96,7 +96,7 @@ class Converter(object):
         # Check whether node is mapped to specified storage group and zone.
         if hostmap['zone'] != zone_name or hostmap['sg'] != storage_group:
             return hostitems
-        for osdname in self._osdtree.get_osd_names_by_host_name(hostname):
+        for osdname in self._osdtree.get_osd_names_by_host(hostname):
             hostitems.append(['item', osdname, 'weight', '1.0'])
         return hostitems
 

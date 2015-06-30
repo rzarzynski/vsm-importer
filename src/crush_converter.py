@@ -59,6 +59,14 @@ class OSDTree(object):
         else:
             return map(lambda oid: self._get_item_by_id(oid)['name'], oids)
 
+    def get_osd_weights_by_host(self, hostname):
+        try:
+            oids = self._get_item_by_name(hostname)['children']
+        except:
+            return []
+        else:
+            return map(lambda oid: self._get_item_by_id(oid)['crush_weight'], oids)
+
     def get_osds_names(self):
         return map(lambda item: item['name'], self._get_osds())
 
@@ -82,7 +90,6 @@ class Converter(object):
             }
         self._bucket_num = 0
         self._ruleset_num = 0
-        self._weights = {}
 
     def _get_bucket_num(self):
         ret = self._bucket_num
@@ -102,6 +109,17 @@ class Converter(object):
         else:
             return mapped
 
+    def _get_tree_weight(self, storage_group=None, zone=None, host=None):
+        hosts  = [host] if host else self._osdtree.get_hosts_names()
+        zones  = [zone] if zone else self._zones
+        groups = [storage_group] if storage_group else self._storage_groups
+
+        weight = 0
+        for g, z, h in itertools.product(groups, zones, hosts):
+            if self._is_mapped(g, z, h):
+                weight = weight + sum(self._osdtree.get_osd_weights_by_host(h))
+        return weight
+
     def _get_osd_items(self, hostname, storage_group, zone_name):
         hostitems = self._get_std_bucket_params()
         # Check whether node is mapped to specified storage group and zone.
@@ -110,25 +128,22 @@ class Converter(object):
         osdnames = self._osdtree.get_osd_names_by_host(hostname)
         for osdname in osdnames:
             hostitems.append(['item', osdname, 'weight', '1.0'])
-        self._weights[(hostname, storage_group, zone_name)] = 1.0 * len(osdnames)
         return hostitems
 
     def _get_storage_group_items(self, storage_group):
         sgitems = self._get_std_bucket_params()
         for entity in itertools.product(self._zones, [storage_group]):
-            sgitems.append(['item', '_'.join(entity), 'weight', '1.0'])
+            zone, _ = entity
+            weight = str(self._get_tree_weight(storage_group, zone))
+            sgitems.append(['item', '_'.join(entity), 'weight', weight])
         return sgitems
 
     def _get_zone_items(self, zone_name, sg_name):
         zoneitems = self._get_std_bucket_params()
         for hostname in self._osdtree.get_hosts_names():
-            try:
-                weight = str(self._weights[(hostname, sg_name, zone_name)])
-            except KeyError:
-                weight = '0.0'
+            weight = str(self._get_tree_weight(sg_name, zone_name, hostname))
             entity_name = '_'.join([hostname, sg_name, zone_name])
-            zoneitems.append(['item', entity_name, 'weight',
-                weight])
+            zoneitems.append(['item', entity_name, 'weight', weight])
         return zoneitems
 
     def _get_ruleset_item(self, group_name, ruleset_num=0):
@@ -146,7 +161,8 @@ class Converter(object):
     def _get_root_items(self):
         rootitems = self._get_std_bucket_params()
         for group_name in self._storage_groups:
-            rootitems.append(['item', group_name, 'weight', '1.0'])
+            weight = str(self._get_tree_weight(group_name))
+            rootitems.append(['item', group_name, 'weight', weight])
         return rootitems
 
     def validate_map(self):

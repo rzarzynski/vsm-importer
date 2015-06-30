@@ -73,7 +73,13 @@ class Converter(object):
         self._zones = ['zone0']
         # FIXME: convert to input params
         self._storage_groups = ['performance', 'capacity']
-        self._mapping = { 'rzarzynski-pc' : { 'zone' : 'zone0', 'sg' : 'capacity'} }
+        self._mapping = {
+            'capacity' : {
+                    'zone0' : {
+                        'rzarzynski-pc' : True
+                    }
+                }
+            }
         self._bucket_num = 0
         self._ruleset_num = 0
         self._weights = {}
@@ -88,14 +94,18 @@ class Converter(object):
                ['alg', 'straw'],                    \
                ['hash', '0']]
 
+    def _is_mapped(self, storage_group, zone, host):
+        try:
+            mapped = self._mapping[storage_group][zone][host]
+        except KeyError:
+            return False
+        else:
+            return mapped
+
     def _get_osd_items(self, hostname, storage_group, zone_name):
         hostitems = self._get_std_bucket_params()
-        try:
-            hostmap = self._mapping[hostname]
-        except KeyError:
-            return hostitems
         # Check whether node is mapped to specified storage group and zone.
-        if hostmap['zone'] != zone_name or hostmap['sg'] != storage_group:
+        if not self._is_mapped(storage_group, zone_name, hostname):
             return hostitems
         osdnames = self._osdtree.get_osd_names_by_host(hostname)
         for osdname in osdnames:

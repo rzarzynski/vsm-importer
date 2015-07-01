@@ -30,6 +30,16 @@ class Formatter(object):
             self.lines.append('    %s' % (' '.join(prop)))
         self.lines.append('}')
 
+    def format_bucket(self, typename, name, num, items):
+        props = [
+            ['id', str(num)],                                           \
+            ['alg', 'straw'],                                           \
+            ['hash', '0']                                               \
+        ]
+        for item, weight in items:
+            props.append(['item', item, 'weight', str(weight)])
+        self.format_multiline_section(typename, name, *props)
+
 
 class OSDTree(object):
     def __init__(self, osdtreemap):
@@ -120,30 +130,8 @@ class Converter(object):
                 weight = weight + sum(self._osdtree.get_osd_weights_by_host(h))
         return weight
 
-    def _get_osd_items(self, hostname, storage_group, zone_name):
-        hostitems = self._get_std_bucket_params()
-        # Check whether node is mapped to specified storage group and zone.
-        if not self._is_mapped(storage_group, zone_name, hostname):
-            return hostitems
-        osdnames = self._osdtree.get_osd_names_by_host(hostname)
-        for osdname in osdnames:
-            hostitems.append(['item', osdname, 'weight', '1.0'])
-        return hostitems
-
-    def _get_storage_group_items(self, storage_group):
-        sgitems = self._get_std_bucket_params()
-        for entity in itertools.product(self._zones, [storage_group]):
-            zone, _ = entity
-            weight = str(self._get_tree_weight(storage_group, zone))
-            sgitems.append(['item', '_'.join(entity), 'weight', weight])
-        return sgitems
-
     def _get_zone_items(self, zone_name, sg_name):
         zoneitems = self._get_std_bucket_params()
-        for hostname in self._osdtree.get_hosts_names():
-            weight = str(self._get_tree_weight(sg_name, zone_name, hostname))
-            entity_name = '_'.join([hostname, sg_name, zone_name])
-            zoneitems.append(['item', entity_name, 'weight', weight])
         return zoneitems
 
     def _get_ruleset_item(self, group_name, ruleset_num=0):
@@ -159,11 +147,10 @@ class Converter(object):
         return items
 
     def _get_root_items(self):
-        rootitems = self._get_std_bucket_params()
-        for group_name in self._storage_groups:
-            weight = str(self._get_tree_weight(group_name))
-            rootitems.append(['item', group_name, 'weight', weight])
         return rootitems
+
+    def _get_entity_name(self, *args):
+        return '_'.join(args)
 
     def validate_map(self):
         return True
@@ -177,30 +164,41 @@ class Converter(object):
 
     def add_hosts_osds(self):
         names = self._osdtree.get_hosts_names()
-
-        for entity in itertools.product(names, self._storage_groups,
-                self._zones):
-            host_name = entity[0]
-            entity_name = '_'.join(entity)
-            self._formatter.format_multiline_section('host', entity_name,
-                    *self._get_osd_items(*entity))
+        for h, g, z in itertools.product(names, self._storage_groups, self._zones):
+            entity_name = '_'.join((h, g, z))
+            # Check whether node is mapped to specified storage group and zone.
+            if not self._is_mapped(g, z, h):
+                items = []
+            else:
+                items = [(osdname, 1.0) for osdname in self._osdtree.get_osd_names_by_host(h)]
+            self._formatter.format_bucket('host', entity_name,
+                    self._get_bucket_num(), items)
 
     def add_root(self):
-        self._formatter.format_multiline_section('root', 'vsm',
-                *self._get_root_items())
-        pass
+        items = [(i, self._get_tree_weight(i)) for i in self._storage_groups]
+        self._formatter.format_bucket('root', 'vsm',
+                self._get_bucket_num(), items)
 
     def add_storage_groups(self):
         for storage_group in self._storage_groups:
-            self._formatter.format_multiline_section('storage_group',
-                    storage_group,
-                    *self._get_storage_group_items(storage_group))
+            items = []
+            for zone in self._zones:
+                name = '_'.join((zone, storage_group))
+                weight = self._get_tree_weight(storage_group, zone)
+                items.append([name, weight])
+            self._formatter.format_bucket('storage_group', storage_group,
+                    self._get_bucket_num(), items)
 
     def add_zones(self):
-        for entity in itertools.product(self._zones, self._storage_groups):
-            entity_name = '_'.join(entity)
-            self._formatter.format_multiline_section('zone', entity_name,
-                    *self._get_zone_items(*entity))
+        for z, g in itertools.product(self._zones, self._storage_groups):
+            entity_name = '_'.join((z, g))
+            items = []
+            for h in self._osdtree.get_hosts_names():
+                weight = self._get_tree_weight(g, z, h)
+                item = '_'.join([h, g, z])
+                items.append([item, weight])
+            self._formatter.format_bucket('zone', entity_name,
+                    self._get_bucket_num(), items)
 
     def add_rulesets(self):
         for group in self._storage_groups:

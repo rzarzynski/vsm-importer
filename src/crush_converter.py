@@ -106,11 +106,6 @@ class Converter(object):
         self._bucket_num = self._bucket_num - 1
         return ret
 
-    def _get_std_bucket_params(self):
-        return [['id', str(self._get_bucket_num())],      \
-               ['alg', 'straw'],                    \
-               ['hash', '0']]
-
     def _is_mapped(self, storage_group, zone, host):
         try:
             mapped = self._mapping[storage_group][zone][host]
@@ -129,10 +124,6 @@ class Converter(object):
             if self._is_mapped(g, z, h):
                 weight = weight + sum(self._osdtree.get_osd_weights_by_host(h))
         return weight
-
-    def _get_zone_items(self, zone_name, sg_name):
-        zoneitems = self._get_std_bucket_params()
-        return zoneitems
 
     def _get_ruleset_item(self, group_name, ruleset_num=0):
         items = []

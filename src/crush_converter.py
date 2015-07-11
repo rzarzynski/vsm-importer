@@ -102,9 +102,8 @@ class Converter(object):
         self._ruleset_num = 0
 
     def _get_bucket_num(self):
-        ret = self._bucket_num
         self._bucket_num = self._bucket_num - 1
-        return ret
+        return self._bucket_num
 
     def _is_mapped(self, storage_group, zone, host):
         try:

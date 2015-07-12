@@ -131,8 +131,8 @@ class Converter(object):
         items.append(['min_size', '0'])
         items.append(['max_size', '10'])
         items.append(['step', 'take', group_name])
-        items.append(['step', 'chooseleaf', 'firstn', '0', 'type', 'zone'])
-        items.append(['step', 'emmit'])
+        items.append(['step', 'chooseleaf', 'firstn', '0', 'type', 'host'])
+        items.append(['step', 'emit'])
         self._ruleset_num = self._ruleset_num + 1
         return items
 

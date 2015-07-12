@@ -129,7 +129,7 @@ class Converter(object):
         items.append(['ruleset', str(self._ruleset_num)])
         items.append(['type', 'replicated'])
         items.append(['min_size', '0'])
-        items.append(['max_size' '10'])
+        items.append(['max_size', '10'])
         items.append(['step', 'take', group_name])
         items.append(['step', 'chooseleaf', 'firstn', '0', 'type', 'zone'])
         items.append(['step', 'emmit'])

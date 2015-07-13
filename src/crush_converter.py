@@ -85,7 +85,7 @@ class OSDTree(object):
 
 
 class Converter(object):
-    def __init__(self, osdtree, formatter):
+    def __init__(self, osdtree, formatter, dev_crushmap = False):
         self._formatter = formatter
         self._osdtree = osdtree
         self._zones = ['zone0']
@@ -100,6 +100,7 @@ class Converter(object):
             }
         self._bucket_num = 0
         self._ruleset_num = 0
+        self._dev_crushmap = dev_crushmap
 
     def _get_bucket_num(self):
         self._bucket_num = self._bucket_num - 1
@@ -131,7 +132,8 @@ class Converter(object):
         items.append(['min_size', '0'])
         items.append(['max_size', '10'])
         items.append(['step', 'take', group_name])
-        items.append(['step', 'chooseleaf', 'firstn', '0', 'type', 'host'])
+        items.append(['step', 'chooseleaf', 'firstn', '0', 'type',
+            'host' if not self._dev_crushmap else 'osd'])
         items.append(['step', 'emit'])
         self._ruleset_num = self._ruleset_num + 1
         return items

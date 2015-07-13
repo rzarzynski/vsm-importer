@@ -147,7 +147,7 @@ class Converter(object):
 
     def add_types(self):
         self._formatter.format_types(
-                ['osd', 'node', 'zone', 'storage_group', 'root'])
+                ['osd', 'host', 'zone', 'storage_group', 'root'])
 
     def add_devices(self):
         self._formatter.format_devices(self._osdtree.get_osds_names())

@@ -201,8 +201,8 @@ if __name__ == '__main__':
         formatter = Formatter()
 
         conv = Converter(osdtree, formatter)
-        conv.add_types()
         conv.add_devices()
+        conv.add_types()
         conv.add_hosts_osds()
         conv.add_zones()
         conv.add_storage_groups()

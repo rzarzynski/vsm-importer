@@ -75,7 +75,7 @@ class OSDTree(object):
         except:
             return []
         else:
-            return map(lambda oid: self._get_item_by_id(oid)['crush_weight'], oids)
+            return map(lambda oid: float(self._get_item_by_id(oid)['crush_weight']), oids)
 
     def get_osds_names(self):
         return map(lambda item: item['name'], self._get_osds())

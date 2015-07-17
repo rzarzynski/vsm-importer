@@ -61,13 +61,14 @@ class OSDTree(object):
     def _get_hosts(self):
         return self._get_items_by_type('host')
 
-    def get_osd_names_by_host(self, hostname):
+    def get_osds_names_weights_by_host(self, hostname):
         try:
             oids = self._get_item_by_name(hostname)['children']
         except:
             return []
         else:
-            return map(lambda oid: self._get_item_by_id(oid)['name'], oids)
+            itms = map(lambda oid: self._get_item_by_id(oid), oids)
+            return map(lambda itm: (itm['name'], itm['crush_weight']), itms)
 
     def get_osd_weights_by_host(self, hostname):
         try:
@@ -162,7 +163,7 @@ class Converter(object):
             if not self._is_mapped(g, z, h):
                 items = []
             else:
-                items = [(osdname, 1.0) for osdname in self._osdtree.get_osd_names_by_host(h)]
+                items = self._osdtree.get_osds_names_weights_by_host(h)
             self._formatter.format_bucket('host', entity_name,
                     self._get_bucket_num(), items)
 

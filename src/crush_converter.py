@@ -4,6 +4,7 @@ import itertools
 class Formatter(object):
     def __init__(self):
         self.lines = []
+        self.sep = ' '
 
     def get_content(self):
         return '\n'.join(self.lines)
@@ -39,6 +40,11 @@ class Formatter(object):
         for item, weight in items:
             props.append(['item', item, 'weight', str(weight)])
         self.format_multiline_section(typename, name, *props)
+
+    def format_tunables(self, items):
+        for item in items:
+            self.lines.append(self.sep.join(['tunable'] + item))
+        self._add_section_sep()
 
 
 class OSDTree(object):
@@ -198,12 +204,22 @@ class Converter(object):
             self._formatter.format_multiline_section('rule', group,
                     *self._get_ruleset_item(group))
 
+    def add_tunables(self):
+        items = [
+            ['choose_local_tries', '0'],
+            ['choose_local_fallback_tries', '0'],
+            ['choose_total_tries', '50'],
+            ['chooseleaf_descend_once', '1']
+        ]
+        self._formatter.format_tunables(items)
+
 if __name__ == '__main__':
     with open('/tmp/hier.txt', 'r') as fh:
         osdtree = OSDTree(json.loads(fh.read()))
         formatter = Formatter()
 
         conv = Converter(osdtree, formatter)
+        conv.add_tunables()
         conv.add_devices()
         conv.add_types()
         conv.add_hosts_osds()

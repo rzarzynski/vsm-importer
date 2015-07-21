@@ -2,7 +2,7 @@
 set -e
 
 CEPH=ceph
-CRUSHTOOL=cruhtool
+CRUSHTOOL=crushtool
 
 TMP_OLD_CRUSH_BIN=/tmp/crush.bin
 TMP_OLD_CRUSH_TXT=/tmp/crush.txt
@@ -24,7 +24,8 @@ ${CEPH} osd set noout
 ${CEPH} tell osd.\* injectargs '--osd-max-backfills 1'
 ${CEPH} tell osd.\* injectargs '--osd-recovery-max-active 1'
 
-echo ${TMP_OSD_TREE_TXT} > ${TMP_NEW_CRUSH_TXT}
+mv -f ${TMP_OSD_TREE_TXT} /tmp/hier.txt
+python ./crush_converter.py > ${TMP_NEW_CRUSH_TXT}
 ${CRUSHTOOL} -c ${TMP_NEW_CRUSH_TXT} -o ${TMP_NEW_CRUSH_BIN}
 
 # injecting
